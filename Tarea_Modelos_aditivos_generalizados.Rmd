@@ -1,0 +1,162 @@
+---
+title: "(13776) MODELIZACIÓN ESTADÍSTICA [22-23]"
+subtitle: "Tarea: Modelos aditivos generalizados"
+author: "Daniel Silva Gomes de Araújo"
+date: '`r format(Sys.Date(),"%Y")`'
+output:
+  html_document:
+  pdf_document:
+    latex_engine: xelatex
+editor_options:
+  markdown:
+    wrap: 80
+  chunk_output_type: console
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  warning = FALSE,
+  message = FALSE,
+  out.width = "100%"
+)
+```
+
+# PRÁCTICA
+
+Objetivo: Evaluar el posible efecto de factores ‘pre-operatorios’ (```age```, ```gender```, ```gluc```, ```diab```), sobre la presencia de infeccion post-operatoria (poi). Es decir trabajamos con una variable respuesta binaria (regresion logıstica) y por lo tanto usaremos un Modelo Aditivo Generalizado.
+
+1) Evalua el posible efecto de la glucosa preoperatoria (```gluc```), sobre la presencia de infeccion post-operatoria (```poi```).:
+
+* Ajusta un modelo gam, obtén un resumen del ajuste y gráfico del efecto
+* Contrasta si el efecto es lineal
+
+```{r}
+poi <- read.csv("C:/Users/dgoma/Downloads/POI.txt", sep="")
+library(mgcv)
+fit.gam <- gam(poi$poi ~ s(poi$gluc,k=25,bs="ps"),method="REML",select="FALSE")
+summary(fit.gam)
+gam.check(fit.gam)
+```
+
+2) Evalua el posible efecto de la glucosa preoperatoria (```gluc```) y la presencia de diabetes (```diab```), sobre la presencia de infección post-operatoria (```poi```).
+
+* Ajusta un modelo gam, obtén un del ajuste y gráficos de efectos. Comenta los resultados.
+
+* ¿es el efecto de diabetes significativo?. ¿Qué modelo es mejor, con o sin diabetes?
+
+```{r}
+poi <- read.csv("C:/Users/dgoma/Downloads/POI.txt", sep="")
+library(mgcv)
+gam1 <- gam(poi$poi ~ poi$diab + s(poi$gluc,k=25,bs="ps"),method="REML", select=TRUE)
+summary(gam1)
+gam.check(gam1)
+
+# La presencia de diabetes no es significativa mientras que el efecto de la glucosa preoperatoria es significativo sobre la presencia de infección posrespiratoria.
+```
+
+* ¿es el efecto de diabetes significativo?. ¿Qué modelo es mejor, con o sin diabetes?
+
+```{r}
+# El efecto de diabetes no es significativo.
+
+poi <- read.csv("C:/Users/dgoma/Downloads/POI.txt", sep="")
+library(mgcv)
+gam1 <- gam(poi$poi ~ poi$diab + s(poi$gluc,k=25,bs="ps"),method="REML", select=TRUE)
+summary(gam1)
+gam.check(gam1)
+gam1 <- gam(poi$poi ~ poi$diab + s(poi$gluc,k=25,bs="ps"),method="REML", select=TRUE)
+gam2 <- gam(poi$poi ~ s(poi$gluc,k=25,bs="ps"),method="REML", select=TRUE)
+anova(gam1,gam2,test="F")
+
+# Es mejor el modelo con diabetes porque los residuos son menores.
+
+```
+
+* Ajusta el modelo incorporando la intersección entre glucosa y diabetes. Obtener un resumen del ajuste y el gráfico del efecto de la glucosa. Comenta los resultados
+
+```{r}
+poi <- read.csv("C:/Users/dgoma/Downloads/POI.txt", sep="")
+library(mgcv)  
+gam3 <- gam(poi$poi ~ poi$diab + s(poi$gluc,k=25,bs="ps") + 
+              s(poi$gluc,k=25,bs="ps",by=poi$diab),method="REML",select=TRUE)
+summary(gam3)
+gam.check(gam3)
+```
+
+* Compara este modelo con el modelo sin interacción, ¿con cuál te quedas?
+
+```{r}
+poi <- read.csv("C:/Users/dgoma/Downloads/POI.txt", sep="")
+library(mgcv)  
+gam1 <- gam(poi$poi ~ poi$diab + s(poi$gluc,k=25,bs="ps"),method="REML", select=TRUE)
+gam3 <- gam(poi$poi ~ poi$diab + s(poi$gluc,k=25,bs="ps") + 
+              s(poi$gluc,k=25,bs="ps",by=poi$diab),method="REML",select=TRUE)
+anova(gam1,gam3,test="F")
+
+# Es mejor el modelo con interacción porque los residuos son menores.
+```
+
+
+3) En base al mejor modelo anterior, evaluar el posible efecto la edad (```age```) y el sexo (```gender```) sobre la presencia de infección post-operatoria (```poi```).
+
+* Incorpora la variable edad y compara el nuevo modelo con el anterior
+
+```{r}
+poi <- read.csv("C:/Users/dgoma/Downloads/POI.txt", sep="")
+library(mgcv)
+gam1 <- gam(poi$poi ~ poi$diab + s(poi$gluc,k=25,bs="ps"),method="REML", select=TRUE)
+gam4 <- gam(poi$poi ~ poi$diab + s(poi$gluc,k=25,bs="ps") + s(poi$age,k=25,bs="ps"),method="REML", select=TRUE)
+summary(gam4)
+gam.check(gam4)
+anova(gam1,gam4,test="F")
+AIC(gam1,gam4)
+
+# El modelo que incluye la variable edad es mejor porque su residual es menor
+```
+
+* Ajusta el modelo incorporando las variables edad y sexo. ¿Qué conclusiones extraes?
+
+```{r}
+poi <- read.csv("C:/Users/dgoma/Downloads/POI.txt", sep="")
+library(mgcv)
+gam1 <- gam(poi$poi ~ poi$diab + s(poi$gluc,k=25,bs="ps"),method="REML", select=TRUE)
+gam4 <- gam(poi$poi ~ poi$diab + s(poi$gluc,k=25,bs="ps") + s(poi$age,k=25,bs="ps"),method="REML", select=TRUE)
+gam5 <- gam(poi$poi ~ poi$diab + s(poi$gluc,k=25,bs="ps") + s(poi$age,k=25,bs="ps") + poi$gender,method="REML", select=TRUE)
+summary(gam5)
+gam.check(gam5)
+anova(gam1,gam4,gam5,test="F")
+AIC(gam1,gam4,gam5)
+
+# El modelo que incluye las variable edad y sexo es mejor porque su residual es menor
+```
+
+* Ajusta el modelo incorporando la interacción entre edad y sexo. ¿Hay interacción?. ¿Mejora el modelo?
+
+```{r}
+poi <- read.csv("C:/Users/dgoma/Downloads/POI.txt", sep="")
+library(mgcv)
+gam5 <- gam(poi$poi ~ poi$diab + s(poi$gluc,k=25,bs="ps") + s(poi$age,k=25,bs="ps") + poi$gender,method="REML", select=TRUE)
+gam6 <- gam(poi$poi ~ poi$diab + s(poi$gluc,k=25,bs="ps") + s(poi$age,k=25,bs="ps") + poi$gender + s(poi$age,k=25,bs="ps",by=poi$gender),method="REML",select=TRUE)
+summary(gam6)
+gam.check(gam6)
+anova(gam5,gam6,test="F")
+AIC(gam5,gam6)
+
+# El modelo no mejora incorporando la interacción entre edad y sexo. No hay interaccion significativa.
+```
+
+* Finalmente ajusta un modelo incorporando la interacción de la glucosa y la edad.
+Obtén un resumen del modelo y los gráficos de los efectos. ¿Hay evidencias que
+sugieran la presencia de interacción?
+
+```{r}
+poi <- read.csv("C:/Users/dgoma/Downloads/POI.txt", sep="")
+library(mgcv)
+gam5 <- gam(poi$poi ~ poi$diab + s(poi$gluc,k=25,bs="ps") + s(poi$age,k=25,bs="ps") + poi$gender,method="REML", select=TRUE)
+gam7 <- gam(poi$poi ~ poi$diab + s(poi$gluc,k=25,bs="ps") + s(poi$age,k=25,bs="ps") + poi$gender + s(poi$age,k=25,bs="ps",by=poi$gluc),method="REML",select=TRUE)
+summary(gam7)
+gam.check(gam7)
+
+# No hay evidencias que sugeren la presencia de interacción de la glucosa y la edad
+```
